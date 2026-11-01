@@ -2,12 +2,121 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Тренажёр отдачи</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тренажёр отдачи</title>
+<style>
+body {
+  margin: 0;
+  background: #101820;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+h2 { color: #4ee8a0; }
+canvas {
+  width: 95%;
+  max-width: 500px;
+  background: #263443;
+  border: 2px solid #4ee8a0;
+  border-radius: 12px;
+  touch-action: none;
+}
+.controls { padding: 15px; }
+button {
+  padding: 12px 24px;
+  background: #4ee8a0;
+  border: 0;
+  border-radius: 8px;
+  font-size: 17px;
+}
+</style>
 </head>
 <body>
-  <h1>Тренажёр контроля отдачи</h1>
-  <p>Подготовка к тренировке</p>
+<h2>ТРЕНАЖЁР КОНТРОЛЯ ОТДАЧИ</h2>
+<p>Касайся мишени и удерживай палец</p>
+<canvas id="game" width="400" height="500"></canvas>
+<div class="controls">
+  <p>Сила отдачи: <span id="value">5</span></p>
+  <input id="power" type="range" min="1" max="10" value="5">
+  <p>Выстрелов: <span id="score">0</span></p>
+  <button onclick="reset()">Сбросить</button>
+</div>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const power = document.getElementById("power");
+const score = document.getElementById("score");
+const value = document.getElementById("value");
+let shots = [];
+let firing = false;
+let timer = null;
+let aim = {x:200,y:250};
+
+power.oninput = () => value.textContent = power.value;
+
+function draw() {
+  ctx.clearRect(0,0,400,500);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  for(let r=100;r>=20;r-=20) {
+    ctx.beginPath();
+    ctx.arc(200,250,r,0,Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle="#4ee8a0";
+  ctx.beginPath();
+  ctx.moveTo(aim.x-12,aim.y);
+  ctx.lineTo(aim.x+12,aim.y);
+  ctx.moveTo(aim.x,aim.y-12);
+  ctx.lineTo(aim.x,aim.y+12);
+  ctx.stroke();
+  ctx.fillStyle="#ff6666";
+  shots.forEach(s=>{
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,4,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+function shoot() {
+  const recoil=Number(power.value);
+  aim.y=Math.max(10,aim.y-recoil*2);
+  aim.x=Math.max(10,Math.min(390,aim.x+(Math.random()-.5)*recoil*3));
+  shots.push({...aim});
+  score.textContent=shots.length;
+  draw();
+}
+function move(e) {
+  const r=canvas.getBoundingClientRect();
+  aim.x=(e.clientX-r.left)*400/r.width;
+  aim.y=(e.clientY-r.top)*500/r.height;
+  draw();
+}
+canvas.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  move(e);
+  firing=true;
+  shoot();
+  timer=setInterval(()=>{if(firing)shoot()},150);
+});
+canvas.addEventListener("pointermove",e=>{
+  if(firing)move(e);
+});
+function stop(){
+  firing=false;
+  clearInterval(timer);
+}
+canvas.addEventListener("pointerup",stop);
+canvas.addEventListener("pointercancel",stop);
+function reset(){
+  stop();
+  shots=[];
+  aim={x:200,y:250};
+  score.textContent=0;
+  draw();
+}
+draw();
+</script>
 </body>
 </html>
